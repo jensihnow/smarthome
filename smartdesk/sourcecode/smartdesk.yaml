@@ -1,0 +1,192 @@
+# Substitutions
+substitutions:
+  espname: "smartdesk"
+  friendly_name: "Schreibtisch"
+# Core
+esphome:
+  name: "${espname}"
+  platform: ESP8266
+  board: nodemcuv2
+# Enable Wifi
+wifi:
+  ssid: !secret esphome_wifi_ssid
+  password: !secret esphome_wifi_password
+  domain: !secret esphome_wifi_domain
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${espname} Fallback"
+    password: !secret esphome_ap_password_smartdesk
+# Enable logging
+logger:
+# Enable Home Assistant API
+api:
+  password: !secret esphome_api_password_smartdesk
+  encryption:
+    key: !secret esphome_api_key
+# OTA
+ota:
+  password: !secret esphome_ota_password_smartdesk
+# Enable Webserver
+web_server:
+  port: 80
+# Cover:
+cover:
+  - platform: time_based
+    # The name of the cover.
+    name: "${friendly_name}"
+    # Manually specify the ID used for code generation.
+    id: desk_cover
+    # The action that should be performed when the remote requests the cover to be opened.
+    open_action:
+      - switch.turn_on: desk_cover_switch1
+    # The amount of time it takes the cover to open up from the fully-closed state.
+    open_duration: 8.5s
+    # The action that should be performed when the remote requests the cover to be closed.
+    close_action:
+      - switch.turn_on: desk_cover_switch2
+    # The amount of time it takes the cover to close from the fully-open state.
+    close_duration: 8.5s
+    # Indicates that the cover has built in end stop detectors. In this configuration the stop_action is not performed when the open or close time is completed and if the cover is commanded to open or close the corresponding actions will be performed without checking current state.
+    has_built_in_endstop: true
+    #  The action that should be performed to stop the cover when the remote requests the cover to be stopped or when the cover has been opening/closing for the given durations.
+    stop_action:
+      - switch.turn_off: desk_cover_switch1
+      - switch.turn_off: desk_cover_switch2
+# Binary Sensor
+binary_sensor:
+  - platform: status
+    # The name of the binary sensor.
+    name: "${friendly_name} Status"
+  - platform: gpio
+    # Manually specify the ID used for code generation.
+    id: desk_cover_open_button
+    # The name of the binary sensor.
+    name: "${friendly_name} Knopf runter"
+    # The pin to periodically check.
+    pin:
+      # The pin number.
+      number: D2
+      # Configures the pin to behave in different modes like input or output.
+      mode: INPUT_PULLUP
+      # If all read and written values should be treated as inverted.
+      inverted: true
+    # An automation to perform when the button is pressed.
+    on_press:
+      - cover.open: desk_cover
+    # An automation to perform when the button is released.
+    on_release:
+      - cover.stop: desk_cover
+    # This automation will be triggered when a button is pressed in a user-specified sequence.
+    on_multi_click:
+    # Doble click
+    - timing:
+        - ON for at most 0.5s
+        - OFF for at most 0.3s
+        - ON for at most 0.5s
+        - OFF for at least 0.2s
+      then:
+        - cover.control:
+            id: desk_cover
+            position: 100%
+    # A list of filters to apply on the binary sensor values such as inverting signals.
+    filters:
+      # When a signal ON is received, wait for the specified time period until publishing an ON state. If an OFF value is received while waiting, the ON action is discarded. Or in other words: Only send an ON value if the binary sensor has stayed ON for at least the specified time period. Useful for debouncing push buttons.
+      - delayed_on: 100ms
+  - platform: gpio
+    # Manually specify the ID used for code generation.
+    id: desk_cover_close_button
+    # The name of the binary sensor.
+    name: "${friendly_name} Knopf hoch"
+    # The pin to periodically check.
+    pin:
+      # The pin number.
+      number: D1
+      # Configures the pin to behave in different modes like input or output.
+      mode: INPUT_PULLUP
+      #  If all read and written values should be treated as inverted.
+      inverted: true
+    # An automation to perform when the button is pressed.
+    on_press:
+      - cover.close: desk_cover
+    # An automation to perform when the button is released.
+    on_release:
+      - cover.stop: desk_cover
+    # This automation will be triggered when a button is pressed in a user-specified sequence.
+    on_multi_click:
+    # Doble click
+    - timing:
+        - ON for at most 0.5s
+        - OFF for at most 0.3s
+        - ON for at most 0.5s
+        - OFF for at least 0.2s
+      then:
+        - cover.control:
+            id: desk_cover
+            position: 65%
+    # A list of filters to apply on the binary sensor values such as inverting signals.
+    filters:
+      # When a signal ON is received, wait for the specified time period until publishing an ON state. If an OFF value is received while waiting, the ON action is discarded. Or in other words: Only send an ON value if the binary sensor has stayed ON for at least the specified time period. Useful for debouncing push buttons.
+      - delayed_on: 100ms
+# Switch
+switch:
+  - platform: gpio
+    # The name of the switch.
+    name: "${friendly_name} hoch"
+    # Manually specify the ID used for code generation.
+    id: desk_cover_switch1
+    # A list of other GPIO switches in an interlock group.
+    interlock: [desk_cover_switch2]
+    # Control how the GPIO Switch attempts to restore state on bootup. ALWAYS_OFF - Always initialize the pin as OFF on bootup.
+    restore_mode: always off
+    # The GPIO pin to use for the switch.
+    pin:
+      # The pin number.
+      number: "D8"
+      # Whether to invert the binary state, i.e. report ON states as OFF and vice versa.
+      inverted: yes
+  - platform: gpio
+    # The name of the switch.
+    name: "${friendly_name} runter"
+    # Manually specify the ID used for code generation.
+    id: desk_cover_switch2
+    # A list of other GPIO switches in an interlock group.
+    interlock: [desk_cover_switch1]
+    # Control how the GPIO Switch attempts to restore state on bootup. ALWAYS_OFF - Always initialize the pin as OFF on bootup.
+    restore_mode: always off
+    # The GPIO pin to use for the switch.
+    pin:
+      # The pin number.
+      number: "D7"
+      # Whether to invert the binary state, i.e. report ON states as OFF and vice versa.
+      inverted: yes
+  - platform: restart
+    id: restart_switch
+    name: "${friendly_name} Restart"
+# Light
+light:
+  # The status_led hooks into all ESPHome components and can indicate the status of the device.
+  - platform: status_led
+    name: "${friendly_name} Status LED"
+    # Manually specify the ID used for code generation.
+    id: desk_cover_status_led
+    # If true, then this entity should not be added to any client’s frontend, (usually Home Assistant) without the user manually enabling it (via the Home Assistant UI). Requires Home Assistant 2021.9 or newer.
+    disabled_by_default: true
+    # The GPIO pin to operate the status LED on.
+    pin:
+      # The pin number.
+      number: D4
+      # If all read and written values should be treated as inverted. Defaults to false.
+      inverted: true
+# Text
+text_sensor:
+  # The wifi_info text sensor platform exposes different WiFi information via text sensors.
+  - platform: wifi_info
+    # Expose the IP Address of the ESP as a text sensor. All options from Text Sensor.
+    ip_address:
+      name: "${friendly_name} IP Address"
+      # If true, then this entity should not be added to any client’s frontend, (usually Home Assistant) without the user manually enabling it (via the Home Assistant UI). Requires Home Assistant 2021.9 or newer.
+      disabled_by_default: true
+  # The version text sensor platform exposes the ESPHome version the firmware was compiled against as a text sensor.
+  - platform: version
+    #  The name of the text sensor.
+    name: "${friendly_name} ESPHome Version"
