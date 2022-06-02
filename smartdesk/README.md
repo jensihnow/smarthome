@@ -126,9 +126,6 @@ sensor:
     schreibtisch_moving:
       friendly_name: "Schreibtisch Bewegung"
       device_class: moving
-      entity_id:
-        - switch.schreibtisch_hoch
-        - switch.schreibtisch_runter
       value_template: "{{ 'on' if is_state('switch.schreibtisch_hoch', 'on') or is_state('switch.schreibtisch_runter', 'on') else 'off' }}"
 ```
 
